@@ -8,8 +8,8 @@ import me.xdark.invokehooks.api.MethodHook;
 public final class DefaultHooksFactory implements HooksFactory {
 
 	@Override
-	public <R> MethodHook<R> createMethodHook(Method method, Invoker<R> controller) {
-		return Environment.createMethodHook0(method, controller);
+	public <R> MethodHook<R> createMethodHook(Class<R> rtype, Method method, Invoker<R> controller) {
+		return Environment.createMethodHook0(rtype, method, controller);
 	}
 
 	static {

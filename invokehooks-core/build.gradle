@@ -2,6 +2,11 @@ plugins {
     id 'java'
 }
 
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
 group 'me.xdark'
 version '1.0'
 

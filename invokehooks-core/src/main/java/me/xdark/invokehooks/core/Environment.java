@@ -3,18 +3,25 @@ package me.xdark.invokehooks.core;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.MethodType;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Objects;
 import me.xdark.invokehooks.api.Invoker;
 import me.xdark.invokehooks.api.MethodHook;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import sun.misc.Unsafe;
+import sun.reflect.MethodAccessor;
 
 final class Environment {
+
+	private static final String HOOK_CLASS_NAME = "me/xdark/invokehooks/codegen/Hook";
+	private static volatile int nextId = 0;
 
 	private static final Lookup LOOKUP;
 	private static final Unsafe UNSAFE;
@@ -35,6 +42,9 @@ final class Environment {
 	private static final MethodHandle MH_DECLARED_METHODS;
 	private static final MethodHandle MH_DECLARED_FIELDS;
 	private static final MethodHandle MH_DECLARED_CONSTRUCTORS;
+	private static final MethodHandle MH_METHOD_COPY;
+	private static final MethodHandle MH_METHOD_PARENT;
+	private static final MethodHandle MH_METHOD_ACCESSOR;
 
 	private Environment() {
 	}
@@ -51,24 +61,85 @@ final class Environment {
 		}
 	}
 
-	static <R> MethodHook<R> createMethodHook0(Method method, Invoker<R> hook) {
+	static <R> MethodHook<R> createMethodHook0(Class<R> rtype, Method method, Invoker<R> hook) {
 		assert method != null;
 		// Obtain declaring class, initialize & get reflection data
 		Class<?> declaringClass = method.getDeclaringClass();
 		initializeReflectionData(declaringClass);
 		Object reflectionData = getReflectionData(declaringClass);
-		// getDeclaredMethod returns a copy of original method, so we need to find original
-		Method original = null;
-		for (Method other : getDeclaredMethods(reflectionData)) {
-			if (other.equals(method)) {
-				original = other;
-				break;
-			}
-		}
-		Objects.requireNonNull(original, "Original method was not found!");
+		wipeMethod(method);
+
+		// Original invoker
+		Method copy = copyMethod(method);
 		// Where magic begins
+
+		// Prepare parent invoker, generate ASM class
+		Invoker<R> parent = (parent1, handle, args) -> (R) copy.invoke(handle, args);
+		ClassWriter cw = new ClassWriter(0);
+		String className = HOOK_CLASS_NAME + nextId++;
+		String signature = rtype.isArray() ? rtype.getName() : ('L' + rtype.getName() + ';');
+		cw.visit(52, Opcodes.ACC_PUBLIC, className,
+				"Lme/xdark/invokehooks/api/MethodHook<" + signature + ">;",
+				"java/lang/Object", null);
+		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "invoker",
+				"Lme/xdark/invokehooks/api/Invoker;", null, null);
+		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "original",
+				"Lme/xdark/invokehooks/api/Invoker;", null, null);
+		{
+			MethodVisitor mv = cw
+					.visitMethod(Opcodes.ACC_PUBLIC, "<init>",
+							"(Lme/xdark/invokehooks/api/Invoker;Lme/xdark/invokehooks/api/Invoker;)V", null,
+							null);
+			mv.visitCode();
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>",
+					"()V", false);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitVarInsn(Opcodes.ALOAD, 1);
+			mv.visitFieldInsn(Opcodes.PUTFIELD, className, "invoker", signature);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitVarInsn(Opcodes.ALOAD, 2);
+			mv.visitFieldInsn(Opcodes.PUTFIELD, className, "original", signature);
+			mv.visitInsn(Opcodes.RETURN);
+			mv.visitMaxs(2, 2);
+			mv.visitEnd();
+		}
+		{
+			MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_VARARGS, "invoke",
+					"(Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
+					null, new String[]{"java/lang/Throwable"});
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitFieldInsn(Opcodes.GETFIELD, className, "invoker",
+					"Lme/xdark/invokehooks/api/Invoker;");
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitFieldInsn(Opcodes.GETFIELD, className, "original",
+					"Lme/xdark/invokehooks/api/Invoker;");
+			mv.visitVarInsn(Opcodes.ALOAD, 1);
+			mv.visitVarInsn(Opcodes.ALOAD, 2);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "me/xdark/invokehooks/api/Invoker", "invoke",
+					"(Lme/xdark/invokehooks/api/Invoker;Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
+					false);
+			mv.visitTypeInsn(Opcodes.CHECKCAST, signature);
+			mv.visitInsn(Opcodes.RETURN);
+		}
+		/*try {
+			Files.write(Paths.get(".", "Generated.class"), cw.toByteArray(), StandardOpenOption.CREATE);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		byte[] src = cw.toByteArray();
+		Class<?> defined = UNSAFE
+				.defineClass(className, src, 0, src.length, Environment.class.getClassLoader(), null);
+		try {
+			Object instance = defined.getDeclaredConstructors()[0].newInstance(hook, parent);
+			return new
+		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+			return sneakyThrow(e);
+		}*/
 		return null;
 	}
+
 
 	private static Object getReflectionData(Class<?> clazz) {
 		try {
@@ -180,6 +251,23 @@ final class Environment {
 		}
 	}
 
+	private static Method copyMethod(Method method) {
+		try {
+			return (Method) MH_METHOD_COPY.invokeExact(method);
+		} catch (Throwable t) {
+			return sneakyThrow(t);
+		}
+	}
+
+	private static void wipeMethod(Method method) {
+		try {
+			MH_METHOD_PARENT.invokeExact(method, (Method) null);
+			MH_METHOD_ACCESSOR.invokeExact(method, (MethodAccessor) null);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
 	private static <T> T sneakyThrow(Throwable t) {
 		UNSAFE.throwException(t);
 		// We throw exception, but compiler does not know about it
@@ -242,6 +330,11 @@ final class Environment {
 			MH_DECLARED_CONSTRUCTORS = LOOKUP
 					.findGetter(C_REFLECTION_DATA, "declaredConstructors",
 							Constructor[].class);
+
+			MH_METHOD_COPY = LOOKUP
+					.findVirtual(Method.class, "copy", MethodType.methodType(Method.class));
+			MH_METHOD_PARENT = LOOKUP.findSetter(Method.class, "root", Method.class);
+			MH_METHOD_ACCESSOR = LOOKUP.findSetter(Method.class, "methodAccessor", MethodAccessor.class);
 		} catch (Throwable t) {
 			throw new AssertionError("Initial setup failed!", t);
 		}
