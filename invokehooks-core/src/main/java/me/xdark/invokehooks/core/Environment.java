@@ -17,6 +17,8 @@ final class Environment {
 	static final Unsafe UNSAFE;
 	private static final Class<?> C_REFLECTION_DATA;
 	private static final MethodHandle MH_METHOD_SLOT;
+	private static final MethodHandle MH_FIELD_SLOT;
+	private static final MethodHandle MH_CONSTRUCTOR_SLOT;
 	private static final MethodHandle MH_REFLECTION_DATA;
 	private static final MethodHandle MH_DECLARED_METHODS;
 	private static final MethodHandle MH_DECLARED_FIELDS;
@@ -96,6 +98,26 @@ final class Environment {
 		}
 	}
 
+	private static int findSlot(Field field) {
+		try {
+			return (int) MH_FIELD_SLOT.invokeExact(field);
+		} catch (Throwable t) {
+			// We throw exception, but compiler does not know about it
+			UNSAFE.throwException(t);
+			return 0;
+		}
+	}
+
+	private static int findSlot(Constructor constructor) {
+		try {
+			return (int) MH_CONSTRUCTOR_SLOT.invokeExact(constructor);
+		} catch (Throwable t) {
+			// We throw exception, but compiler does not know about it
+			UNSAFE.throwException(t);
+			return 0;
+		}
+	}
+
 	static {
 		Object maybeUnsafe = AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
 			try {
@@ -129,6 +151,8 @@ final class Environment {
 		}
 		try {
 			MH_METHOD_SLOT = LOOKUP.findGetter(Method.class, "slot", int.class);
+			MH_FIELD_SLOT = LOOKUP.findGetter(Field.class, "slot", int.class);
+			MH_CONSTRUCTOR_SLOT = LOOKUP.findGetter(Constructor.class, "slot", int.class);
 			MH_REFLECTION_DATA = LOOKUP.findGetter(Class.class, "reflectionData", SoftReference.class);
 
 			C_REFLECTION_DATA = Class.forName("java.lang.Class$ReflectionData");
