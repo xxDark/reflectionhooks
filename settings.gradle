@@ -1,0 +1,4 @@
+rootProject.name = 'invokehooks'
+include 'invokehooks-api'
+include 'invokehooks-core'
+
