@@ -10,8 +10,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import me.xdark.invokehooks.api.BaseHook;
+import me.xdark.invokehooks.api.Hook;
 import me.xdark.invokehooks.api.Invoker;
-import me.xdark.invokehooks.api.MethodHook;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -20,7 +21,7 @@ import sun.reflect.MethodAccessor;
 
 final class Environment {
 
-	private static final String HOOK_CLASS_NAME = "me/xdark/invokehooks/codegen/Hook";
+	private static final String HOOK_CLASS_NAME = "me/xdark/invokehooks/core/GeneratedHook";
 	private static volatile int nextId = 0;
 
 	private static final Lookup LOOKUP;
@@ -61,12 +62,19 @@ final class Environment {
 		}
 	}
 
-	static <R> MethodHook<R> createMethodHook0(Class<R> rtype, Method method, Invoker<R> hook) {
+	static <R> Hook createMethodHook0(Class<R> rtype, Method method, Invoker<R> hook) {
 		assert method != null;
 		// Obtain declaring class, initialize & get reflection data
 		Class<?> declaringClass = method.getDeclaringClass();
 		initializeReflectionData(declaringClass);
 		Object reflectionData = getReflectionData(declaringClass);
+		for (Method other : getDeclaredMethods(reflectionData)) {
+			if (other.equals(method)) {
+				method = other;
+				break;
+			}
+		}
+		method.setAccessible(true);
 		wipeMethod(method);
 
 		// Original invoker
@@ -75,69 +83,69 @@ final class Environment {
 
 		// Prepare parent invoker, generate ASM class
 		Invoker<R> parent = (parent1, handle, args) -> (R) copy.invoke(handle, args);
-		ClassWriter cw = new ClassWriter(0);
+		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 		String className = HOOK_CLASS_NAME + nextId++;
-		String signature = rtype.isArray() ? rtype.getName() : ('L' + rtype.getName() + ';');
-		cw.visit(52, Opcodes.ACC_PUBLIC, className,
-				"Lme/xdark/invokehooks/api/MethodHook<" + signature + ">;",
+		String signature =
+				rtype.isArray() ? rtype.getName() : ('L' + rtype.getName().replace('.', '/') + ';');
+		cw.visit(52, Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL, className,
+				null,
 				"java/lang/Object", null);
-		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "invoker",
-				"Lme/xdark/invokehooks/api/Invoker;", null, null);
-		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_FINAL, "original",
-				"Lme/xdark/invokehooks/api/Invoker;", null, null);
+		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, "invoker",
+				"Lme/xdark/invokehooks/api/Invoker;", null, null).visitEnd();
+		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, "original",
+				"Lme/xdark/invokehooks/api/Invoker;", null, null).visitEnd();
+		;
+		cw.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, "hook",
+				"Lme/xdark/invokehooks/api/Hook;", null, null).visitEnd();
+		;
 		{
-			MethodVisitor mv = cw
-					.visitMethod(Opcodes.ACC_PUBLIC, "<init>",
-							"(Lme/xdark/invokehooks/api/Invoker;Lme/xdark/invokehooks/api/Invoker;)V", null,
-							null);
+			MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
 			mv.visitCode();
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
 			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>",
 					"()V", false);
-			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitVarInsn(Opcodes.ALOAD, 1);
-			mv.visitFieldInsn(Opcodes.PUTFIELD, className, "invoker", signature);
-			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitVarInsn(Opcodes.ALOAD, 2);
-			mv.visitFieldInsn(Opcodes.PUTFIELD, className, "original", signature);
 			mv.visitInsn(Opcodes.RETURN);
-			mv.visitMaxs(2, 2);
+			mv.visitMaxs(1, 1);
 			mv.visitEnd();
 		}
 		{
-			MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_VARARGS, "invoke",
-					"(Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
-					null, new String[]{"java/lang/Throwable"});
-			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitFieldInsn(Opcodes.GETFIELD, className, "invoker",
+			MethodVisitor mv = cw
+					.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_VARARGS, "invoke",
+							"(Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
+							null, new String[]{"java/lang/Throwable"});
+			mv.visitCode();
+			mv.visitFieldInsn(Opcodes.GETSTATIC, className, "invoker",
+					"Lme/xdark/invokehooks/api/Invoker;");
+			mv.visitFieldInsn(Opcodes.GETSTATIC, className, "original",
 					"Lme/xdark/invokehooks/api/Invoker;");
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
-			mv.visitFieldInsn(Opcodes.GETFIELD, className, "original",
-					"Lme/xdark/invokehooks/api/Invoker;");
 			mv.visitVarInsn(Opcodes.ALOAD, 1);
-			mv.visitVarInsn(Opcodes.ALOAD, 2);
-			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "me/xdark/invokehooks/api/Invoker", "invoke",
-					"(Lme/xdark/invokehooks/api/Invoker;Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "me/xdark/invokehooks/api/Invoker", "invoke",
+					"(Lme/xdark/invokehooks/api/Invoker;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
 					true);
-			mv.visitTypeInsn(Opcodes.CHECKCAST, rtype.getTypeName());
+			mv.visitTypeInsn(Opcodes.CHECKCAST, rtype.getTypeName().replace('.', '/'));
 			mv.visitInsn(Opcodes.ARETURN);
-		}
-		/*try {
-			Files.write(Paths.get(".", "Generated.class"), cw.toByteArray(), StandardOpenOption.CREATE);
-		} catch (IOException e) {
-			e.printStackTrace();
+			mv.visitMaxs(-1, -1);
+			mv.visitEnd();
 		}
 
+		Hook delegate = new BaseHook();
 		byte[] src = cw.toByteArray();
 		Class<?> defined = UNSAFE
 				.defineClass(className, src, 0, src.length, Environment.class.getClassLoader(), null);
 		try {
-			Object instance = defined.getDeclaredConstructors()[0].newInstance(hook, parent);
-			return new
-		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-			return sneakyThrow(e);
-		}*/
-		return null;
+			LOOKUP.findStaticSetter(defined, "invoker", Invoker.class)
+					.invokeExact(hook);
+			LOOKUP.findStaticSetter(defined, "original", Invoker.class)
+					.invokeExact(parent);
+			LOOKUP.findStaticSetter(defined, "hook", Hook.class)
+					.invokeExact(delegate);
+		} catch (Throwable t) {
+			return sneakyThrow(t);
+		}
+		setSlot(method, 1);
+		setClass(method, defined);
+		return delegate;
 	}
 
 

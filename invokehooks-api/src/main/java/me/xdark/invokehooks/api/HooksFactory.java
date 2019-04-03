@@ -12,5 +12,5 @@ public interface HooksFactory {
 	 * @param controller invocation controller
 	 * @return hook instance
 	 */
-	<R> MethodHook<R> createMethodHook(Class<R> rtype, Method method, Invoker<R> controller);
+	<R> Hook createMethodHook(Class<R> rtype, Method method, Invoker<R> controller);
 }
