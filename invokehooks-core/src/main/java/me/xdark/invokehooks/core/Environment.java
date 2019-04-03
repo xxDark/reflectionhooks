@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Objects;
+import me.xdark.invokehooks.api.Invoker;
 import me.xdark.invokehooks.api.MethodHook;
 import sun.misc.Unsafe;
 
@@ -50,13 +51,8 @@ final class Environment {
 		}
 	}
 
-	static <R> MethodHook<R> createMethodHook0(Method method, Method hook) {
+	static <R> MethodHook<R> createMethodHook0(Method method, Invoker<R> hook) {
 		assert method != null;
-		Class<?>[] params = hook.getParameterTypes();
-		if (params.length != 2 || params[1] != Object.class || params[2] != Object[].class) {
-			throw new IllegalArgumentException(
-					"Illegal hook descriptor (required: Object,Object[])");
-		}
 		// Obtain declaring class, initialize & get reflection data
 		Class<?> declaringClass = method.getDeclaringClass();
 		initializeReflectionData(declaringClass);
