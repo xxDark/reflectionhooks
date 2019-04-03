@@ -60,6 +60,26 @@ final class Environment {
 		}
 	}
 
+	private static Field[] getDeclaredFields(Object reflectionData) {
+		try {
+			return (Field[]) MH_DECLARED_FIELDS.invoke(reflectionData);
+		} catch (Throwable t) {
+			// We throw exception, but compiler does not know about it
+			UNSAFE.throwException(t);
+			return null;
+		}
+	}
+
+	private static Constructor[] getDeclaredConstructors(Object reflectionData) {
+		try {
+			return (Constructor[]) MH_DECLARED_CONSTRUCTORS.invoke(reflectionData);
+		} catch (Throwable t) {
+			// We throw exception, but compiler does not know about it
+			UNSAFE.throwException(t);
+			return null;
+		}
+	}
+
 	private static void initializeReflectionData(Class<?> clazz) {
 		clazz.getDeclaredMethods();
 		clazz.getDeclaredFields();
