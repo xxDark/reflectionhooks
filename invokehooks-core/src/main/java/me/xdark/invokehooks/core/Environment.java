@@ -118,7 +118,7 @@ final class Environment {
 			mv.visitVarInsn(Opcodes.ALOAD, 2);
 			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "me/xdark/invokehooks/api/Invoker", "invoke",
 					"(Lme/xdark/invokehooks/api/Invoker;Ljava/lang/Object;[Ljava/lang/Object;)" + signature,
-					false);
+					true);
 			mv.visitTypeInsn(Opcodes.CHECKCAST, signature);
 			mv.visitInsn(Opcodes.RETURN);
 		}
