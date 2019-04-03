@@ -9,7 +9,7 @@ public final class DefaultHooksFactory implements HooksFactory {
 
 	@Override
 	public <R> MethodHook<R> createMethodHook(Method method, Invoker<R> controller) {
-		return null;
+		return Environment.createMethodHook0(method, controller);
 	}
 
 	static {

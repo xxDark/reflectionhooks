@@ -9,16 +9,28 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Objects;
+import me.xdark.invokehooks.api.Invoker;
+import me.xdark.invokehooks.api.MethodHook;
 import sun.misc.Unsafe;
 
 final class Environment {
 
-	static final Lookup LOOKUP;
-	static final Unsafe UNSAFE;
+	private static final Lookup LOOKUP;
+	private static final Unsafe UNSAFE;
 	private static final Class<?> C_REFLECTION_DATA;
-	private static final MethodHandle MH_METHOD_SLOT;
-	private static final MethodHandle MH_FIELD_SLOT;
-	private static final MethodHandle MH_CONSTRUCTOR_SLOT;
+
+	private static final MethodHandle MH_GET_METHOD_SLOT;
+	private static final MethodHandle MH_GET_FIELD_SLOT;
+	private static final MethodHandle MH_GET_CONSTRUCTOR_SLOT;
+	private static final MethodHandle MH_SET_METHOD_SLOT;
+	private static final MethodHandle MH_SET_FIELD_SLOT;
+	private static final MethodHandle MH_SET_CONSTRUCTOR_SLOT;
+
+	private static final MethodHandle MH_DECLARING_CLASS_METHOD;
+	private static final MethodHandle MH_DECLARING_CLASS_FIELD;
+	private static final MethodHandle MH_DECLARING_CLASS_CONSTRUCTOR;
+
 	private static final MethodHandle MH_REFLECTION_DATA;
 	private static final MethodHandle MH_DECLARED_METHODS;
 	private static final MethodHandle MH_DECLARED_FIELDS;
@@ -34,21 +46,47 @@ final class Environment {
 			LOOKUP.findStaticSetter(Class.class, "useCaches", boolean.class)
 					.invokeExact(true);
 			initializeReflectionData(Class.class);
-			// Step 2: begin injection into reflection data
-			// Obtain reflectionData, setup hooks
-			Object reflectionData = getReflectionData(Class.class);
 		} catch (Throwable t) {
 			UNSAFE.throwException(t);
 		}
+	}
+
+	static <R> MethodHook<R> createMethodHook0(Method method, Method hook) {
+		assert method != null;
+		Class<?>[] params = hook.getParameterTypes();
+		if (params.length != 3) {
+			throwIllegalMethodHook();
+		} else if (params[0] != Invoker.class || params[1] != Object.class
+				|| params[2] != Object[].class) {
+			throwIllegalMethodHook();
+		}
+		// Obtain declaring class, initialize & get reflection data
+		Class<?> declaringClass = method.getDeclaringClass();
+		initializeReflectionData(declaringClass);
+		Object reflectionData = getReflectionData(declaringClass);
+		// getDeclaredMethod returns a copy of original method, so we need to find original
+		Method original = null;
+		for (Method other : getDeclaredMethods(reflectionData)) {
+			if (other.equals(method)) {
+				original = other;
+				break;
+			}
+		}
+		Objects.requireNonNull(original, "Original method was not found!");
+		// Where magic begins
+		return null;
+	}
+
+	private static void throwIllegalMethodHook() {
+		throw new IllegalArgumentException(
+				"Illegal hook descriptor (required: Invoker,Object,Object[])");
 	}
 
 	private static Object getReflectionData(Class<?> clazz) {
 		try {
 			return ((SoftReference) MH_REFLECTION_DATA.invoke(clazz)).get();
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return null;
+			return sneakyThrow(t);
 		}
 	}
 
@@ -56,9 +94,7 @@ final class Environment {
 		try {
 			return (Method[]) MH_DECLARED_METHODS.invoke(reflectionData);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return null;
+			return sneakyThrow(t);
 		}
 	}
 
@@ -66,9 +102,7 @@ final class Environment {
 		try {
 			return (Field[]) MH_DECLARED_FIELDS.invoke(reflectionData);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return null;
+			return sneakyThrow(t);
 		}
 	}
 
@@ -76,9 +110,7 @@ final class Environment {
 		try {
 			return (Constructor[]) MH_DECLARED_CONSTRUCTORS.invoke(reflectionData);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return null;
+			return sneakyThrow(t);
 		}
 	}
 
@@ -90,32 +122,80 @@ final class Environment {
 
 	private static int findSlot(Method method) {
 		try {
-			return (int) MH_METHOD_SLOT.invokeExact(method);
+			return (int) MH_GET_METHOD_SLOT.invokeExact(method);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return 0;
+			return sneakyThrow(t);
 		}
 	}
 
 	private static int findSlot(Field field) {
 		try {
-			return (int) MH_FIELD_SLOT.invokeExact(field);
+			return (int) MH_GET_FIELD_SLOT.invokeExact(field);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return 0;
+			return sneakyThrow(t);
 		}
 	}
 
 	private static int findSlot(Constructor constructor) {
 		try {
-			return (int) MH_CONSTRUCTOR_SLOT.invokeExact(constructor);
+			return (int) MH_GET_CONSTRUCTOR_SLOT.invokeExact(constructor);
 		} catch (Throwable t) {
-			// We throw exception, but compiler does not know about it
-			UNSAFE.throwException(t);
-			return 0;
+			return sneakyThrow(t);
 		}
+	}
+
+	private static void setSlot(Method method, int newSlot) {
+		try {
+			MH_SET_METHOD_SLOT.invokeExact(method, newSlot);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void setSlot(Field field, int newSlot) {
+		try {
+			MH_SET_FIELD_SLOT.invokeExact(field, newSlot);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void setSlot(Constructor<?> constructor, int newSlot) {
+		try {
+			MH_SET_CONSTRUCTOR_SLOT.invokeExact(constructor, newSlot);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void setClass(Method method, Class<?> newClass) {
+		try {
+			MH_DECLARING_CLASS_METHOD.invokeExact(method, newClass);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void setClass(Field field, Class<?> newClass) {
+		try {
+			MH_DECLARING_CLASS_FIELD.invokeExact(field, newClass);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void setClass(Constructor<?> constructor, Class<?> newClass) {
+		try {
+			MH_DECLARING_CLASS_CONSTRUCTOR.invokeExact(constructor, newClass);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static <T> T sneakyThrow(Throwable t) {
+		UNSAFE.throwException(t);
+		// We throw exception, but compiler does not know about it
+		return null;
 	}
 
 	static {
@@ -150,9 +230,18 @@ final class Environment {
 			LOOKUP = (Lookup) maybeLookup;
 		}
 		try {
-			MH_METHOD_SLOT = LOOKUP.findGetter(Method.class, "slot", int.class);
-			MH_FIELD_SLOT = LOOKUP.findGetter(Field.class, "slot", int.class);
-			MH_CONSTRUCTOR_SLOT = LOOKUP.findGetter(Constructor.class, "slot", int.class);
+			MH_GET_METHOD_SLOT = LOOKUP.findGetter(Method.class, "slot", int.class);
+			MH_GET_FIELD_SLOT = LOOKUP.findGetter(Field.class, "slot", int.class);
+			MH_GET_CONSTRUCTOR_SLOT = LOOKUP.findGetter(Constructor.class, "slot", int.class);
+
+			MH_SET_METHOD_SLOT = LOOKUP.findSetter(Method.class, "slot", int.class);
+			MH_SET_FIELD_SLOT = LOOKUP.findSetter(Field.class, "slot", int.class);
+			MH_SET_CONSTRUCTOR_SLOT = LOOKUP.findSetter(Constructor.class, "slot", int.class);
+
+			MH_DECLARING_CLASS_METHOD = LOOKUP.findSetter(Method.class, "clazz", Class.class);
+			MH_DECLARING_CLASS_FIELD = LOOKUP.findSetter(Field.class, "clazz", Class.class);
+			MH_DECLARING_CLASS_CONSTRUCTOR = LOOKUP.findSetter(Constructor.class, "clazz", Class.class);
+
 			MH_REFLECTION_DATA = LOOKUP.findGetter(Class.class, "reflectionData", SoftReference.class);
 
 			C_REFLECTION_DATA = Class.forName("java.lang.Class$ReflectionData");
@@ -161,7 +250,7 @@ final class Environment {
 							Method[].class);
 			MH_DECLARED_FIELDS = LOOKUP
 					.findGetter(C_REFLECTION_DATA, "declaredFields",
-							Method[].class);
+							Field[].class);
 			MH_DECLARED_CONSTRUCTORS = LOOKUP
 					.findGetter(C_REFLECTION_DATA, "declaredConstructors",
 							Constructor[].class);
