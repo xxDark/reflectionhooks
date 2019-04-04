@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -15,6 +16,7 @@ import me.xdark.invokehooks.api.FieldSetController;
 import me.xdark.invokehooks.api.Hook;
 import me.xdark.invokehooks.api.Invoker;
 import sun.misc.Unsafe;
+import sun.reflect.ConstructorAccessor;
 import sun.reflect.FieldAccessor;
 import sun.reflect.MethodAccessor;
 import sun.reflect.ReflectionFactory;
@@ -30,12 +32,16 @@ final class Environment {
 	private static final MethodHandle MH_METHOD_PARENT_SET;
 	private static final MethodHandle MH_METHOD_ACCESSOR_SET;
 
-
 	private static final MethodHandle MH_FIELD_COPY;
 	private static final MethodHandle MH_FIELD_PARENT_GET;
 	private static final MethodHandle MH_FIELD_PARENT_SET;
 	private static final MethodHandle MH_FIELD_ACCESSOR_SET1;
 	private static final MethodHandle MH_FIELD_ACCESSOR_SET2;
+
+	private static final MethodHandle MH_CONST_COPY;
+	private static final MethodHandle MH_CONST_PARENT_GET;
+	private static final MethodHandle MH_CONST_PARENT_SET;
+	private static final MethodHandle MH_CONST_ACCESSOR_SET;
 
 	private Environment() {
 	}
@@ -255,6 +261,35 @@ final class Environment {
 		}
 	}
 
+	static <R> Hook createConstructorHook0(Constructor<R> constructor, Invoker<R> hook) {
+		assert constructor != null;
+		try {
+			// Where magic begins
+			Constructor<R> root = (Constructor<R>) MH_CONST_PARENT_GET.invokeExact(constructor);
+			// Copy root method to allow to call original one
+			Constructor<R> copyRoot = (Constructor<R>) MH_CONST_COPY.invokeExact(root);
+			wipeConstructor(copyRoot);
+			ConstructorAccessor accessor = REFLECTION_FACTORY.newConstructorAccessor(copyRoot);
+			Invoker<R> parent = (parent1, handle, args) -> (R) accessor.newInstance(args);
+			Hook delegate = new BaseHook();
+			ConstructorAccessor hooked = args -> {
+				try {
+					if (!delegate.isHooked()) {
+						return parent.invoke(null, args);
+					}
+					return hook.invoke(parent, null, args);
+				} catch (Throwable t) {
+					throw new InvocationTargetException(t);
+				}
+			};
+			MH_CONST_ACCESSOR_SET.invokeExact(root, hooked);
+			wipeConstructor(constructor);
+			return delegate;
+		} catch (Throwable t) {
+			return sneakyThrow(t);
+		}
+	}
+
 	private static void wipeMethod(Method method) {
 		try {
 			MH_METHOD_PARENT_SET.invokeExact(method, (Method) null);
@@ -269,6 +304,15 @@ final class Environment {
 			MH_FIELD_PARENT_SET.invokeExact(field, (Field) null);
 			MH_FIELD_ACCESSOR_SET1.invokeExact(field, (FieldAccessor) null);
 			MH_FIELD_ACCESSOR_SET2.invokeExact(field, (FieldAccessor) null);
+		} catch (Throwable t) {
+			sneakyThrow(t);
+		}
+	}
+
+	private static void wipeConstructor(Constructor<?> constructor) {
+		try {
+			MH_CONST_PARENT_SET.invokeExact(constructor, (Constructor<?>) null);
+			MH_CONST_ACCESSOR_SET.invokeExact(constructor, (ConstructorAccessor) null);
 		} catch (Throwable t) {
 			sneakyThrow(t);
 		}
@@ -327,6 +371,13 @@ final class Environment {
 					.findSetter(Field.class, "overrideFieldAccessor", FieldAccessor.class);
 			MH_FIELD_ACCESSOR_SET2 = LOOKUP
 					.findSetter(Field.class, "fieldAccessor", FieldAccessor.class);
+
+			MH_CONST_COPY = LOOKUP
+					.findVirtual(Constructor.class, "copy", MethodType.methodType(Constructor.class));
+			MH_CONST_PARENT_GET = LOOKUP.findGetter(Constructor.class, "root", Constructor.class);
+			MH_CONST_PARENT_SET = LOOKUP.findSetter(Constructor.class, "root", Constructor.class);
+			MH_CONST_ACCESSOR_SET = LOOKUP
+					.findSetter(Constructor.class, "constructorAccessor", ConstructorAccessor.class);
 
 			REFLECTION_FACTORY = ReflectionFactory.getReflectionFactory();
 		} catch (Throwable t) {
