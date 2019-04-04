@@ -22,9 +22,10 @@ public class TestConstructor {
 		});
 		hook.hook();
 		String value = constructor.newInstance("Hello").value;
-		Assertions.assertEquals(value, "World!", "Expected 'World!' but got '" + value + '\'');
+		Assertions.assertEquals(value, "World!", "Expected 'World!', but got: '" + value + '\'');
 		hook.unhook();
-		Assertions.assertEquals(constructor.newInstance("Hello").value, "Hello");
+		value = constructor.newInstance("Hello").value;
+		Assertions.assertEquals(value, "Hello","Expected 'Hello, but got: '" + value + '\'');
 	}
 
 	private static class Klass {
