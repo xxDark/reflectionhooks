@@ -1,4 +1,4 @@
-rootProject.name = 'invokehooks'
-include 'invokehooks-api'
-include 'invokehooks-core'
+rootProject.name = 'reflectionhooks'
+include 'reflectionhooks-api'
+include 'reflectionhooks-core'
 
