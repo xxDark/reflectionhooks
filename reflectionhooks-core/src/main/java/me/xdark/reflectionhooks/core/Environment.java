@@ -55,6 +55,10 @@ final class Environment {
 		try {
 			// Where magic begins
 			Method root = (Method) MH_METHOD_PARENT_GET.invokeExact(method);
+			// If it is already a root one, then, what the heck?
+			if (root == null) {
+				root = method;
+			}
 			// Copy root method to allow to call original one
 			Method copyRoot = (Method) MH_METHOD_COPY.invokeExact(root);
 			wipeMethod(copyRoot);
@@ -75,6 +79,10 @@ final class Environment {
 		try {
 			// Where magic begins
 			Field root = (Field) MH_FIELD_PARENT_GET.invokeExact(field);
+			// If it is already a root one, then, what the heck?
+			if (root == null) {
+				root = field;
+			}
 			// Copy root field to allow to call original one
 			Field copyRoot = (Field) MH_FIELD_COPY.invokeExact(root);
 			wipeField(copyRoot);
@@ -97,6 +105,10 @@ final class Environment {
 		try {
 			// Where magic begins
 			Constructor<R> root = (Constructor<R>) MH_CONST_PARENT_GET.invokeExact(constructor);
+			// If it is already a root one, then, what the heck?
+			if (root == null) {
+				root = constructor;
+			}
 			// Copy root method to allow to call original one
 			Constructor<R> copyRoot = (Constructor<R>) MH_CONST_COPY.invokeExact(root);
 			wipeConstructor(copyRoot);
