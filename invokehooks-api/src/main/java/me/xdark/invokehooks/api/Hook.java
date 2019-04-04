@@ -4,8 +4,6 @@ public interface Hook {
 
 	/**
 	 * Hooks target {@link java.lang.reflect.Member}
-	 *
-	 * @throws IllegalStateException if target is already hooked
 	 */
 	void hook();
 
@@ -16,8 +14,6 @@ public interface Hook {
 
 	/**
 	 * Removes hook from target {@link java.lang.reflect.Member}
-	 *
-	 * @throws IllegalStateException if hook not set
 	 */
 	void unhook();
 }
