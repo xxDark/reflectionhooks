@@ -23,7 +23,4 @@ jar {
 
 dependencies {
     compile project(":invokehooks-api")
-    compile 'org.ow2.asm:asm:7.0'
-    compile 'org.ow2.asm:asm-tree:7.0'
-    compile 'org.ow2.asm:asm-commons:7.0'
 }
