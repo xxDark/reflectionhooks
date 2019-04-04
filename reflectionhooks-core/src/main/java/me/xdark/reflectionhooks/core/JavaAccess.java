@@ -17,7 +17,7 @@ interface JavaAccess {
 	Object newFieldAccessor(Field field, FieldGetController getController,
 			FieldSetController setController, Hook hook);
 
-	<R>Object newConstructorAccessor(Constructor<R> constructor, Invoker<R> invoker, Hook hook);
+	<R> Object newConstructorAccessor(Constructor<R> constructor, Invoker<R> invoker, Hook hook);
 
 	Class<?> resolve(String target);
 }
