@@ -1,5 +1,7 @@
 package me.xdark.reflectionhooks.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.lang.reflect.Field;
 import me.xdark.reflectionhooks.api.Hook;
 import me.xdark.reflectionhooks.api.HooksFactory;
@@ -18,15 +20,14 @@ public class TestField {
 				(parent, handle, value1) -> parent.set(null, handle, 5));
 		hook.hook();
 		field.set(this, 3);
-		Assertions.assertEquals(value, 5, "Expected '5' for field value, but got: '" + value + '\'');
+		assertEquals(value, 5);
 		int get = field.getInt(this);
 		Assertions
-				.assertEquals(get, 13, "Expected '13' as returned get value, but got: '" + get + '\'');
+				.assertEquals(get, 13);
 		hook.unhook();
 		field.set(this, 3);
-		Assertions.assertEquals(value, 3, "Expected '3' for field value, but got: '" + value + '\'');
+		assertEquals(value, 3);
 		get = field.getInt(this);
-		Assertions
-				.assertEquals(get, 3, "Expected '3' as returned get value, but got: '" + get + '\'');
+		assertEquals(get, 3);
 	}
 }

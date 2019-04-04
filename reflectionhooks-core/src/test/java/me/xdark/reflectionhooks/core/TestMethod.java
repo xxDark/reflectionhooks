@@ -1,10 +1,11 @@
 package me.xdark.reflectionhooks.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import me.xdark.reflectionhooks.api.Hook;
 import me.xdark.reflectionhooks.api.HooksFactory;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TestMethod {
@@ -17,12 +18,10 @@ public class TestMethod {
 		Hook hook = factory.createMethodHook(String.class, method, (parent, handle, args) -> "World!");
 		hook.hook();
 		String returnment = (String) method.invoke(this);
-		Assertions.assertEquals(returnment, "World!",
-				"Expected 'World!' as invocation result, but got: '" + returnment + '\'');
+		assertEquals(returnment, "World!");
 		hook.unhook();
 		returnment = (String) method.invoke(this);
-		Assertions.assertEquals(returnment, "Hello, ",
-				"Expected 'Hello, ' as invocation result, but got: '" + returnment + '\'');
+		assertEquals(returnment, "Hello, ");
 	}
 
 	@Test
@@ -36,12 +35,10 @@ public class TestMethod {
 		});
 		hook.hook();
 		String returnment = (String) method.invoke(this, "Hello, ");
-		Assertions.assertEquals("World!", returnment,
-				"Expected 'World!' as invocation result, but got: '" + returnment + '\'');
+		assertEquals("World!", returnment);
 		hook.unhook();
 		returnment = (String) method.invoke(this, "Hello, ");
-		Assertions.assertEquals("Hello, ", returnment,
-				"Expected 'Hello, ' as invocation result, but got: '" + returnment + '\'');
+		assertEquals("Hello, ", returnment);
 	}
 
 	public String someMethod() {

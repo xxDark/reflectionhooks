@@ -1,10 +1,11 @@
 package me.xdark.reflectionhooks.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import me.xdark.reflectionhooks.api.Hook;
 import me.xdark.reflectionhooks.api.HooksFactory;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TestConstructor {
@@ -22,10 +23,10 @@ public class TestConstructor {
 		});
 		hook.hook();
 		String value = constructor.newInstance("Hello").value;
-		Assertions.assertEquals(value, "World!", "Expected 'World!', but got: '" + value + '\'');
+		assertEquals(value, "World!");
 		hook.unhook();
 		value = constructor.newInstance("Hello").value;
-		Assertions.assertEquals(value, "Hello","Expected 'Hello, but got: '" + value + '\'');
+		assertEquals(value, "Hello");
 	}
 
 	private static class Klass {
