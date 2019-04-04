@@ -82,6 +82,7 @@ final class Environment {
 			};
 			MH_METHOD_ACCESSOR_SET.invokeExact(root, hooked);
 			wipeMethod(method);
+			MH_METHOD_ACCESSOR_SET.invokeExact(method, hooked);
 			return delegate;
 		} catch (Throwable t) {
 			return sneakyThrow(t);
@@ -255,6 +256,8 @@ final class Environment {
 			MH_FIELD_ACCESSOR_SET1.invokeExact(root, hooked);
 			MH_FIELD_ACCESSOR_SET2.invokeExact(root, hooked);
 			wipeField(field);
+			MH_FIELD_ACCESSOR_SET1.invokeExact(field, hooked);
+			MH_FIELD_ACCESSOR_SET2.invokeExact(field, hooked);
 			return delegate;
 		} catch (Throwable t) {
 			return sneakyThrow(t);
@@ -284,6 +287,7 @@ final class Environment {
 			};
 			MH_CONST_ACCESSOR_SET.invokeExact(root, hooked);
 			wipeConstructor(constructor);
+			MH_CONST_ACCESSOR_SET.invokeExact(constructor, hooked);
 			return delegate;
 		} catch (Throwable t) {
 			return sneakyThrow(t);
