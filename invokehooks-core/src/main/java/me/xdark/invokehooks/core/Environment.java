@@ -275,7 +275,7 @@ final class Environment {
 			ConstructorAccessor hooked = args -> {
 				try {
 					if (!delegate.isHooked()) {
-						return parent.invoke(null, args);
+						return parent.invoke(null, null, args);
 					}
 					return hook.invoke(parent, null, args);
 				} catch (Throwable t) {
