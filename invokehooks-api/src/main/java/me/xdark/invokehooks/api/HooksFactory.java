@@ -1,5 +1,6 @@
 package me.xdark.invokehooks.api;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public interface HooksFactory {
@@ -13,4 +14,14 @@ public interface HooksFactory {
 	 * @return hook instance
 	 */
 	<R> Hook createMethodHook(Class<R> rtype, Method method, Invoker<R> controller);
+
+	/**
+	 * Creates a hook for {@link java.lang.reflect.Field}
+	 *
+	 * @return hook instance
+	 * @see FieldGetController
+	 * @see FieldSetController
+	 */
+	Hook createFieldHook(Field field, FieldGetController getController,
+			FieldSetController setController);
 }

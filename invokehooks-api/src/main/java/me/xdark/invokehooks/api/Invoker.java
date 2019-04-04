@@ -1,5 +1,6 @@
 package me.xdark.invokehooks.api;
 
+@FunctionalInterface
 public interface Invoker<R> {
 
 	/**
