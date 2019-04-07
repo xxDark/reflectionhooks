@@ -1,7 +1,5 @@
 # reflectionhooks
-
-
-
+TODO: java.lang.invoke hooks
 ```Java
 public class Test {
 
