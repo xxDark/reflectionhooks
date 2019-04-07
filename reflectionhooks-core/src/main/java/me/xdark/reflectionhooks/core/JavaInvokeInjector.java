@@ -18,15 +18,28 @@ public final class JavaInvokeInjector {
 		Field field = Unsafe.class.getDeclaredField("theUnsafe");
 		field.setAccessible(true);
 		Unsafe unsafe = (Unsafe) field.get(null);
-		byte[] transformed = transform("java/lang/invoke/MethodHandles.class",
-				new Consumer<ClassWriter>() {
-					@Override
-					public void accept(ClassWriter cw) {
-						cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "java/lang/invoke/MethodHandles", null,
-								"java/lang/Object", null);
-					}
-				});
-		defineClass(unsafe, "java.lang.invoke.MethodHandles", transformed);
+		{
+			byte[] transformed = transform("java/lang/invoke/MethodHandles.class",
+					new Consumer<ClassWriter>() {
+						@Override
+						public void accept(ClassWriter cw) {
+							cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "java/lang/invoke/MethodHandles", null,
+									"java/lang/Object", null);
+						}
+					});
+			defineClass(unsafe, "java.lang.invoke.MethodHandles", transformed);
+		}
+		{
+			byte[] transformed = transform("java/lang/invoke/MethodHandles$Lookup.class",
+					new Consumer<ClassWriter>() {
+						@Override
+						public void accept(ClassWriter cw) {
+							cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, "java/lang/invoke/MethodHandles$Lookup", null,
+									"java/lang/Object", null);
+						}
+					});
+			defineClass(unsafe, "java.lang.invoke.MethodHandles$Lookup", transformed);
+		}
 	}
 
 	private static void defineClass(Unsafe unsafe, String className, byte[] code) {
