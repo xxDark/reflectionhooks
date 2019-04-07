@@ -20,7 +20,7 @@ import sun.misc.Unsafe;
 final class Environment {
 
 	static final Lookup LOOKUP;
-	private static final Unsafe UNSAFE;
+	 static final Unsafe UNSAFE;
 	private static final JavaAccess JAVA_ACCESS;
 
 	private static final MethodHandle MH_METHOD_COPY;
