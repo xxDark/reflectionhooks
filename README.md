@@ -1,5 +1,5 @@
 # reflectionhooks
-TODO: java.lang.invoke hooks
+WARNING: java.lang.invoke hooks can only be used if jar is appended into bootstrap class path
 ```Java
 public class Test {
 
