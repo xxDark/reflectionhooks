@@ -36,10 +36,8 @@ public final class JavaInvokeInjector {
 					new Consumer<ClassNode>() {
 						@Override
 						public void accept(ClassNode cw) {
-							cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-									"java/lang/invoke/MethodHandles$Lookup",
-									null,
-									"java/lang/Object", null);
+							// We can't clear final bit here, so we directly inject into
+							// findVirtual, findStatic & so on
 						}
 					});
 			defineClass(unsafe, "java.lang.invoke.MethodHandles$Lookup", transformed,
