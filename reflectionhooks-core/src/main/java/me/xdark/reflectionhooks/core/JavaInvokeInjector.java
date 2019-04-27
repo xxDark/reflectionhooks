@@ -65,14 +65,23 @@ public final class JavaInvokeInjector {
         list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 4));
         list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 5));
         list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 6));
-        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKESTATIC, "me/xdark/reflectionhooks/core/Environment", "onMethodHook", "(Ljava/lang/ref/SoftReference;Ljava/lang/ref/SoftReference;Ljava/lang/ref/SoftReference;)V", false));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKESTATIC, "me/xdark/reflectionhooks/core/Environment", "onMethodHook", "(Lme/xdark/reflectionhooks/api/NonDirectReference;Lme/xdark/reflectionhooks/api/NonDirectReference;Lme/xdark/reflectionhooks/api/NonDirectReference;)V", false));
+        getAndSet(list, first, 4, 1);
+        getAndSet(list, first, 5, 2);
+        getAndSet(list, first, 6, 3);
+    }
+
+    private static void getAndSet(InsnList list, AbstractInsnNode first, int aload, int astore) {
+        list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, aload));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "me/xdark/reflectionhooks/api/NonDirectReference", "get", "()Ljava/lang/Object;", false));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ASTORE, astore));
     }
 
     private static void createRef(InsnList list, AbstractInsnNode first, int aload, int astore) {
-        list.insertBefore(first, new TypeInsnNode(Opcodes.NEW, "java/lang/ref/SoftReference"));
+        list.insertBefore(first, new TypeInsnNode(Opcodes.NEW, "me/xdark/reflectionhooks/api/NonDirectReference"));
         list.insertBefore(first, new InsnNode(Opcodes.DUP));
         list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, aload));
-        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/ref/SoftReference", "<init>", "(Ljava/lang/Object;)V", false));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKESPECIAL, "me/xdark/reflectionhooks/api/NonDirectReference", "<init>", "(Ljava/lang/Object;)V", false));
         list.insertBefore(first, new VarInsnNode(Opcodes.ASTORE, astore));
     }
 

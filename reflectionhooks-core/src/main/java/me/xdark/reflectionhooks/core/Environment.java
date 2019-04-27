@@ -8,7 +8,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
-import java.lang.ref.SoftReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -160,7 +159,7 @@ public final class Environment {
         return null;
     }
 
-    public static void onMethodHook(SoftReference<Class<?>> classRef, SoftReference<String> nameRef, SoftReference<MethodType> typeRef) {
+    public static void onMethodHook(NonDirectReference<Class<?>> classRef, NonDirectReference<String> nameRef, NonDirectReference<MethodType> typeRef) {
         for (int i = 0; i < INVOKE_METHOD_CONTROLLERS.size(); i++) {
             INVOKE_METHOD_CONTROLLERS.get(i).onFindCalled(null, classRef, nameRef, typeRef);
         }

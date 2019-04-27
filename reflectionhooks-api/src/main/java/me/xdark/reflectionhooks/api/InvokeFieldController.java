@@ -1,7 +1,5 @@
 package me.xdark.reflectionhooks.api;
 
-import java.lang.ref.SoftReference;
-
 @FunctionalInterface
 public interface InvokeFieldController {
 
@@ -14,5 +12,5 @@ public interface InvokeFieldController {
      * @param nameRef  the name reference
      * @param typeRef  the field type reference
      */
-    void onFindCalled(FindType type, SoftReference<Class<?>> classRef, SoftReference<String> nameRef, SoftReference<Class<?>> typeRef);
+    void onFindCalled(FindType type, NonDirectReference<Class<?>> classRef, NonDirectReference<String> nameRef, NonDirectReference<Class<?>> typeRef);
 }

@@ -1,7 +1,6 @@
 package me.xdark.reflectionhooks.api;
 
 import java.lang.invoke.MethodType;
-import java.lang.ref.SoftReference;
 
 @FunctionalInterface
 public interface InvokeMethodController {
@@ -15,5 +14,5 @@ public interface InvokeMethodController {
      * @param nameRef  the name reference
      * @param typeRef  the descriptor reference
      */
-    void onFindCalled(FindType type, SoftReference<Class<?>> classRef, SoftReference<String> nameRef, SoftReference<MethodType> typeRef);
+    void onFindCalled(FindType type, NonDirectReference<Class<?>> classRef, NonDirectReference<String> nameRef, NonDirectReference<MethodType> typeRef);
 }
