@@ -9,9 +9,6 @@ import sun.misc.Unsafe;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -100,7 +97,6 @@ public final class JavaInvokeInjector {
         consumer.accept(cn);
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         cn.accept(cw);
-        Files.write(Paths.get(".", "Klass" + next++ + ".class"), cw.toByteArray(), StandardOpenOption.CREATE);
         return cw.toByteArray();
     }
 }
