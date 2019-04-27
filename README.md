@@ -52,3 +52,27 @@ public class Test {
 	}
 }
 ```
+
+```Java
+public class Test {
+
+    public static void main(String[] args) throws Throwable {
+        JavaInvokeInjector.inject();
+        HooksFactory factory = new DefaultHooksFactory();
+        factory.createMethodInvokeHook((type, classRef, nameRef, typeRef) -> {
+            System.out.println("Call: " + classRef.get() + ' ' + nameRef.get() + ' ' + typeRef.get());
+            nameRef.set("hooked");
+        });
+        MethodHandles.publicLookup().findStatic(Test.class, "first", MethodType.methodType(void.class))
+                .invokeExact();
+    }
+
+    public static void first() {
+        System.out.println("Hello, ");
+    }
+
+    public static void hooked() {
+        System.out.println("World!");
+    }
+}
+```
