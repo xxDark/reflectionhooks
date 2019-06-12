@@ -9,6 +9,9 @@ import sun.misc.Unsafe;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -41,8 +44,10 @@ public final class JavaInvokeInjector {
                             // findVirtual, findStatic & so on
                             injectMethod(findMethodByName(cw.methods, "findVirtual"));
                             injectMethod(findMethodByName(cw.methods, "findStatic"));
+                            injectUnreflectMethod(findMethodByNameAndDesc(cw.methods, "unreflect", "(Ljava/lang/reflect/Method;)Ljava/lang/invoke/MethodHandle;"));
                         }
                     });
+            Files.write(Paths.get(".").resolve("Test.class"), transformed, StandardOpenOption.CREATE);
             defineClass(unsafe, "java.lang.invoke.MethodHandles$Lookup", transformed, null);
         }
     }
@@ -50,6 +55,15 @@ public final class JavaInvokeInjector {
     private static MethodNode findMethodByName(List<MethodNode> nodes, String name) {
         for (MethodNode mn : nodes) {
             if (name.equals(mn.name)) {
+                return mn;
+            }
+        }
+        throw new RuntimeException("MethodNode " + name + " was not found!");
+    }
+
+    private static MethodNode findMethodByNameAndDesc(List<MethodNode> nodes, String name, String desc) {
+        for (MethodNode mn : nodes) {
+            if (name.equals(mn.name) && desc.equals(mn.desc)) {
                 return mn;
             }
         }
@@ -69,6 +83,24 @@ public final class JavaInvokeInjector {
         getAndSet(list, first, 4, 1);
         getAndSet(list, first, 5, 2);
         getAndSet(list, first, 6, 3);
+    }
+
+    private static void injectUnreflectMethod(MethodNode mn) {
+        InsnList list = mn.instructions;
+        AbstractInsnNode first = list.getFirst();
+        list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 1));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "getReturnType", "()Ljava/lang/Class;", false));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 1));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "getParameterTypes", "()[Ljava/lang/Class;", false));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/invoke/MethodType", "methodType", "(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;", false));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ASTORE, 2));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 1));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "getDeclaringClass", "()Ljava/lang/Class;", false));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ASTORE, 3));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ALOAD, 1));
+        list.insertBefore(first, new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;", false));
+        list.insertBefore(first, new VarInsnNode(Opcodes.ASTORE, 4));
+        // TODO replace
     }
 
     private static void getAndSet(InsnList list, AbstractInsnNode first, int aload, int astore) {
@@ -92,8 +124,6 @@ public final class JavaInvokeInjector {
             unsafe.defineAnonymousClass(root, code, null);
         }
     }
-
-    private static int next = 0;
 
     private static byte[] transform(String resource, Consumer<ClassNode> consumer)
             throws IOException {

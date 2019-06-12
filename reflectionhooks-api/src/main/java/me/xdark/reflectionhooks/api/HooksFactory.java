@@ -43,6 +43,12 @@ public interface HooksFactory {
     void createMethodInvokeHook(InvokeMethodController controller);
 
     /**
+     * Creates a method hook for {@link java.lang.invoke.MethodHandles.Lookup}
+     * WARNING: this types of hook CANNOT be uninstalled
+     */
+    void createConstructorInvokeHook(InvokeMethodController controller);
+
+    /**
      * Creates a field hook for {@link java.lang.invoke.MethodHandles.Lookup}
      * WARNING: this types of hook CANNOT be uninstalled
      */

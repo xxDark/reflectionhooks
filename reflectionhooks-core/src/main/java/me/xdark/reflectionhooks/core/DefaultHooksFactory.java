@@ -31,6 +31,11 @@ public final class DefaultHooksFactory implements HooksFactory {
 	}
 
 	@Override
+	public void createConstructorInvokeHook(InvokeMethodController controller) {
+		Environment.INVOKE_CONSTRUCTOR_CONTROLLERS.add(controller);
+	}
+
+	@Override
 	public void createFieldInvokeHook(InvokeFieldController controller) {
 		Environment.INVOKE_FIELD_CONTROLLERS.add(controller);
 	}

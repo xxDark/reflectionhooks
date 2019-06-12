@@ -18,8 +18,9 @@ import java.util.List;
 
 public final class Environment {
 
-    public static final List<InvokeMethodController> INVOKE_METHOD_CONTROLLERS = new ArrayList<>();
-    public static final List<InvokeFieldController> INVOKE_FIELD_CONTROLLERS = new ArrayList<>();
+    static final List<InvokeMethodController> INVOKE_METHOD_CONTROLLERS = new ArrayList<>();
+    static final List<InvokeMethodController> INVOKE_CONSTRUCTOR_CONTROLLERS = new ArrayList<>();
+    static final List<InvokeFieldController> INVOKE_FIELD_CONTROLLERS = new ArrayList<>();
 
     static final Lookup LOOKUP;
     private static final Unsafe UNSAFE;
@@ -162,6 +163,12 @@ public final class Environment {
     public static void onMethodHook(NonDirectReference<Class<?>> classRef, NonDirectReference<String> nameRef, NonDirectReference<MethodType> typeRef) {
         for (int i = 0; i < INVOKE_METHOD_CONTROLLERS.size(); i++) {
             INVOKE_METHOD_CONTROLLERS.get(i).onFindCalled(null, classRef, nameRef, typeRef);
+        }
+    }
+
+    public static void onConstructorHook(NonDirectReference<Class<?>> classRef, NonDirectReference<String> nameRef, NonDirectReference<MethodType> typeRef) {
+        for (int i = 0; i < INVOKE_CONSTRUCTOR_CONTROLLERS.size(); i++) {
+            INVOKE_CONSTRUCTOR_CONTROLLERS.get(i).onFindCalled(null, classRef, nameRef, typeRef);
         }
     }
 
