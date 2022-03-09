@@ -5,14 +5,15 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+
+import jdk.internal.reflect.ConstructorAccessor;
+import jdk.internal.reflect.FieldAccessor;
+import jdk.internal.reflect.MethodAccessor;
+import jdk.internal.reflect.ReflectionFactory;
 import me.xdark.reflectionhooks.api.FieldGetController;
 import me.xdark.reflectionhooks.api.FieldSetController;
 import me.xdark.reflectionhooks.api.Hook;
 import me.xdark.reflectionhooks.api.Invoker;
-import sun.reflect.ConstructorAccessor;
-import sun.reflect.FieldAccessor;
-import sun.reflect.MethodAccessor;
-import sun.reflect.ReflectionFactory;
 
 @SuppressWarnings("Duplicates")
 final class JavaAccessOld implements JavaAccess {
