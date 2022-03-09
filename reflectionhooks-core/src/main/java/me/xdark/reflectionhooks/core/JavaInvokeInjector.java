@@ -1,10 +1,10 @@
 package me.xdark.reflectionhooks.core;
 
+import jdk.internal.misc.Unsafe;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
-import sun.misc.Unsafe;
 
 import java.io.IOException;
 import java.io.InputStream;
